@@ -1,0 +1,62 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+.mvn/
+!.mvn/wrapper/maven-wrapper.properties
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+
+# AI models (large files — pull separately)
+ai-service/.model_cache/
+*.bin
+*.pt
+*.onnx
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+frontend/.env.local
+
+# Uploads (never commit user documents)
+uploads/
+
+# Docker volumes
+postgres_data/
+redis_data/
+ollama_data/
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript build info (generated)
+*.tsbuildinfo
+
+# Evaluation results (generated — do not commit raw data)
+evaluation/results/
+evaluation/charts/

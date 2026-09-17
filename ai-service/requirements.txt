@@ -1,0 +1,61 @@
+# =============================================================
+# LexRAG AI Service — Dependencies
+# All free / open-source. No paid API keys required.
+# =============================================================
+
+# ── Web framework ─────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.31.0
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-multipart==0.0.12
+
+# ── Database ──────────────────────────────────────────────────
+asyncpg==0.29.0
+sqlalchemy[asyncio]==2.0.35
+psycopg2-binary==2.9.9
+
+# ── PDF Processing ────────────────────────────────────────────
+pymupdf==1.24.11          # Fast PDF text extraction with page/block info
+pytesseract==0.3.13       # OCR wrapper for Tesseract
+Pillow==10.4.0            # Image handling for OCR
+
+# ── NLP & Embeddings ─────────────────────────────────────────
+sentence-transformers==3.2.0   # Local embeddings (no API key)
+torch==2.4.1                    # PyTorch backend for sentence-transformers
+transformers==4.45.2
+
+# ── Reranking ─────────────────────────────────────────────────
+# cross-encoder models come from sentence-transformers
+
+# ── Vector / Keyword Search ───────────────────────────────────
+pgvector==0.3.5           # pgvector Python client
+rank-bm25==0.2.2          # BM25 for sparse/keyword retrieval
+
+# ── LLM (Ollama) ──────────────────────────────────────────────
+ollama==0.3.3             # Official Ollama Python client
+
+# ── Observability ─────────────────────────────────────────────
+prometheus-fastapi-instrumentator==7.0.0
+
+# ── Redis (optional caching) ─────────────────────────────────
+redis==5.1.1
+
+# ── HTTP client ───────────────────────────────────────────────
+httpx==0.27.2
+
+# ── Text processing ───────────────────────────────────────────
+langdetect==1.0.9
+nltk==3.9.1
+regex==2024.9.11
+
+# ── Utilities ─────────────────────────────────────────────────
+python-jose[cryptography]==3.3.0
+python-dotenv==1.0.1
+structlog==24.4.0
+aiofiles==24.1.0
+
+# ── Testing ───────────────────────────────────────────────────
+pytest==8.3.3
+pytest-asyncio==0.24.0
+pytest-mock==3.14.0

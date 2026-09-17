@@ -1,0 +1,41 @@
+{
+  "_comment": "LexRAG RAG Evaluation Dataset — Template. Add your own question/answer pairs before running evaluation.",
+  "_schema": {
+    "id": "Unique identifier for the question",
+    "question": "Natural language research question",
+    "document_id": "UUID of the document containing the answer (null if cross-document)",
+    "expected_citation_ids": "List of citation IDs that MUST appear in a correct answer",
+    "ground_truth_answer": "Gold-standard answer text for faithfulness evaluation",
+    "difficulty": "easy | medium | hard",
+    "question_type": "factual | comparative | analytical | precedent_search"
+  },
+  "questions": [
+    {
+      "id": "Q001",
+      "question": "What were the grounds on which bail was granted in this case?",
+      "document_id": null,
+      "expected_citation_ids": [],
+      "ground_truth_answer": "",
+      "difficulty": "easy",
+      "question_type": "factual"
+    },
+    {
+      "id": "Q002",
+      "question": "What was the court's interpretation of Section 438 CrPC in relation to anticipatory bail?",
+      "document_id": null,
+      "expected_citation_ids": [],
+      "ground_truth_answer": "",
+      "difficulty": "medium",
+      "question_type": "analytical"
+    },
+    {
+      "id": "Q003",
+      "question": "What precedents did the court rely upon in reaching its decision?",
+      "document_id": null,
+      "expected_citation_ids": [],
+      "ground_truth_answer": "",
+      "difficulty": "hard",
+      "question_type": "precedent_search"
+    }
+  ]
+}

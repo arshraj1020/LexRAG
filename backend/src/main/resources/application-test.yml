@@ -1,0 +1,29 @@
+# Test profile — overrides used when @ActiveProfiles("test") is set.
+# Connect to a local/Testcontainers PostgreSQL instance.
+spring:
+  datasource:
+    url: ${TEST_DATABASE_URL:jdbc:postgresql://localhost:5432/lexrag_test}
+    username: ${TEST_DATABASE_USERNAME:lexrag}
+    password: ${TEST_DATABASE_PASSWORD:changeme}
+  flyway:
+    enabled: true
+  data:
+    redis:
+      url: redis://localhost:6379/1   # Use DB 1 for tests
+
+security:
+  jwt:
+    secret: test-secret-that-is-at-least-64-characters-long-for-hs512-testing!!
+    expiration-ms: 3600000
+
+ai:
+  service:
+    url: http://localhost:8001
+    internal-api-key: test-internal-key
+
+upload:
+  directory: /tmp/lexrag-test-uploads
+
+logging:
+  level:
+    com.lexrag: DEBUG

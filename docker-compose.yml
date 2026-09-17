@@ -1,0 +1,6 @@
+version: "3.9"
+# Convenience shortcut: runs docker-compose from the repo root.
+# This simply includes the main compose file in infrastructure/.
+
+include:
+  - infrastructure/docker-compose.yml
