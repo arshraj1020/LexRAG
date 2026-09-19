@@ -141,6 +141,40 @@ cd backend
 mvn spring-boot:run
 ```
 
+### Backend tests
+
+`mvn test` runs `LexRagApplicationTests` with `@ActiveProfiles("test")`, which
+reads `backend/src/main/resources/application-test.yml`. That profile expects
+its own, minimal PostgreSQL + Redis pair on localhost — deliberately separate
+from the full `docker compose` stack, so tests don't need a real `.env`
+(JWT secret, internal API key, etc.):
+
+| Setting | Default |
+|---|---|
+| Postgres role | `lexrag` |
+| Postgres password | `changeme` |
+| Postgres database | `lexrag_test` |
+| Redis | `localhost:6379` db `1`, no auth |
+
+On a machine with a native PostgreSQL already installed (e.g. via
+`brew services start postgresql@17`), that service normally owns
+`localhost:5432` ahead of anything Docker publishes there, so the bootstrap
+script creates the `lexrag` role / `lexrag_test` database directly in it via
+`psql` rather than fighting it for the port. Redis still runs in a throwaway
+Docker container. Run once:
+
+```bash
+./scripts/setup-test-db.sh
+```
+
+Then:
+
+```bash
+cd backend
+mvn clean test
+mvn clean verify
+```
+
 ### AI Service (FastAPI)
 
 ```bash

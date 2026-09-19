@@ -23,6 +23,10 @@
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.6.0</springdoc.version>
         <testcontainers.version>1.20.2</testcontainers.version>
+        <!-- Override Spring Boot parent's pinned Lombok (1.18.34) — too old for the
+             javac build actually installed (JDK 24/25 internal TypeTag layout changed;
+             see https://github.com/projectlombok/lombok/issues/3814). -->
+        <lombok.version>1.18.42</lombok.version>
     </properties>
 
     <dependencies>
@@ -149,6 +153,23 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <proc>full</proc>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <annotationProcessors>
+                        <annotationProcessor>lombok.launch.AnnotationProcessorHider$AnnotationProcessor</annotationProcessor>
+                    </annotationProcessors>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
