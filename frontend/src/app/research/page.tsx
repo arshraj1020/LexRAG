@@ -72,7 +72,7 @@ function CitationCard({ citation, index }: { citation: Citation; index: number }
           )}
           <p className="text-xs text-gray-500">Page {citation.page} · ¶{citation.paragraph}</p>
           {citation.claim && (
-            <p className="text-xs text-gray-600 mt-1 italic">"{citation.claim}"</p>
+            <p className="text-xs text-gray-600 mt-1 italic">&quot;{citation.claim}&quot;</p>
           )}
           {!citation.is_valid && citation.validation_errors?.map((e, i) => (
             <p key={i} className="text-xs text-red-600 mt-1">⚠ {e}</p>
@@ -222,6 +222,25 @@ function JsonSection({ title, data }: { title: string; data: Record<string, unkn
           {JSON.stringify(data, null, 2)}
         </pre>
       )}
+    </div>
+  );
+}
+
+/**
+ * Shown in place of the structured result when the AI service found no
+ * relevant evidence (structuredComparison/structuredAnalysis/structuredBrief
+ * comes back null — see ResearchServiceImpl.extractStructured on the backend).
+ *
+ * Without this, the Compare/Provision/Brief tabs previously rendered nothing
+ * but a bare (and misleadingly non-"N/A") confidence badge, giving no
+ * indication of why the result panel looked empty — the same pattern the
+ * Research tab already handles explicitly for INSUFFICIENT_EVIDENCE answers.
+ */
+function InsufficientEvidenceBanner() {
+  return (
+    <div className="card p-6 text-sm text-amber-700 flex gap-2 items-center">
+      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+      Insufficient evidence in the uploaded documents to answer this request.
     </div>
   );
 }
@@ -396,10 +415,11 @@ function CompareTab({ documents }: { documents: Array<{ id: string; title: strin
 
       {result && (
         <div className="space-y-4">
+          {result.structuredComparison === null && <InsufficientEvidenceBanner />}
           <JsonSection title="Structured Comparison" data={result.structuredComparison} />
           <CitationSection verified={result.verifiedCitations ?? []} invalid={result.invalidCitations ?? []} />
           <div className="flex items-center gap-3 text-xs text-gray-400 px-1">
-            <ConfidenceBadge confidence={result.confidence} />
+            {result.structuredComparison !== null && <ConfidenceBadge confidence={result.confidence} />}
             <span>{result.latencyMs}ms</span>
           </div>
           <Disclaimer text={result.disclaimer} />
@@ -511,7 +531,7 @@ function PrecedentsTab({ documents }: { documents: Array<{ id: string; title: st
                   )}
                   {p.relevant_passage && (
                     <p className="text-xs text-gray-500 italic border-l-2 border-blue-200 pl-2">
-                      "{p.relevant_passage}"
+                      &quot;{p.relevant_passage}&quot;
                     </p>
                   )}
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
@@ -601,10 +621,11 @@ function ProvisionTab({ documents }: { documents: Array<{ id: string; title: str
 
       {result && (
         <div className="space-y-4">
+          {result.structuredAnalysis === null && <InsufficientEvidenceBanner />}
           <JsonSection title="Judicial Interpretation Analysis" data={result.structuredAnalysis} />
           <CitationSection verified={result.verifiedCitations ?? []} invalid={result.invalidCitations ?? []} />
           <div className="flex items-center gap-3 text-xs text-gray-400 px-1">
-            <ConfidenceBadge confidence={result.confidence} />
+            {result.structuredAnalysis !== null && <ConfidenceBadge confidence={result.confidence} />}
             <span>{result.latencyMs}ms</span>
           </div>
           <Disclaimer text={result.disclaimer} />
@@ -689,11 +710,12 @@ function BriefTab({ documents }: { documents: Array<{ id: string; title: string;
 
       {result && (
         <div className="space-y-4">
+          {result.structuredBrief === null && <InsufficientEvidenceBanner />}
           <JsonSection title="Research Brief" data={result.structuredBrief} />
           <CitationSection verified={result.verifiedCitations ?? []} invalid={result.invalidCitations ?? []} />
           <div className="flex items-center gap-3 text-xs text-gray-400 px-1">
             <span>{result.retrievedChunks} chunks retrieved</span>
-            <ConfidenceBadge confidence={result.confidence} />
+            {result.structuredBrief !== null && <ConfidenceBadge confidence={result.confidence} />}
             <span>{result.latencyMs}ms</span>
           </div>
           <Disclaimer text={result.disclaimer} />

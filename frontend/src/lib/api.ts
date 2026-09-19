@@ -9,9 +9,14 @@ import axios, { AxiosError } from "axios";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
+// Must be >= the backend's own AiServiceClient.GENERATE_TIMEOUT (300s, used for
+// /api/research/query, /compare, /precedents, /provision, /brief) with margin.
+// A shorter client-side timeout would abort a request the backend is still
+// legitimately processing and could have completed successfully, surfacing a
+// spurious "Request failed" error to the user instead of the real answer.
 export const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 120_000, // 2 min — LLM generation can be slow
+  timeout: 310_000, // 5 min 10s — LLM generation can take up to 5 minutes server-side
   headers: { "Content-Type": "application/json" },
 });
 
