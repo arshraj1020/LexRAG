@@ -1,7 +1,5 @@
 package com.lexrag.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lexrag.api.dto.request.CaseComparisonRequest;
 import com.lexrag.api.dto.request.PrecedentSearchRequest;
 import com.lexrag.api.dto.request.ProvisionAnalysisRequest;
@@ -44,11 +42,18 @@ public class ResearchServiceImpl implements ResearchService {
     private final AiServiceClient aiServiceClient;
     private final ResearchSessionRepository sessionRepository;
     private final DocumentRepository documentRepository;
-    private final ObjectMapper objectMapper;
+    private final ResearchQueryPersistenceService queryPersistenceService;
 
     @Override
-    @Transactional
     public ResearchQueryResponse query(ResearchQueryRequest request, User user) {
+        // NOTE: deliberately NOT @Transactional. The AI service call below can
+        // take up to five minutes (see AiServiceClient.GENERATE_TIMEOUT); holding
+        // a DB transaction/connection open for that whole duration would starve
+        // the connection pool under concurrent load. Only the persistence step
+        // (delegated to ResearchQueryPersistenceService, a separate bean so its
+        // own @Transactional actually applies via Spring's AOP proxy) runs in a
+        // short transaction after the AI call completes — the same principle
+        // IngestionCoordinator already applies to the async ingestion path.
         long startMs = System.currentTimeMillis();
 
         // Convert UUID list to String list for AI service
@@ -81,10 +86,9 @@ public class ResearchServiceImpl implements ResearchService {
         Integer retrievedChunks = aiResponse.get("retrieved_chunks") instanceof Number n
                 ? n.intValue() : null;
 
-        // Persist the query to a default session for this user
-        ResearchSession session = getOrCreateDefaultSession(user);
-        ResearchQuery savedQuery = persistQuery(
-                session, request.question(), answer,
+        // Persist the query result (short, dedicated transaction)
+        ResearchQuery savedQuery = queryPersistenceService.save(
+                user, request.question(), answer,
                 aiResponse, verifiedCitations, latencyMs, strategy
         );
 
@@ -216,47 +220,6 @@ public class ResearchServiceImpl implements ResearchService {
 
     // ── Private helpers ───────────────────────────────────────
 
-    private ResearchSession getOrCreateDefaultSession(User user) {
-        return sessionRepository.findByUserIdOrderByCreatedAtDesc(
-                        user.getId(), PageRequest.of(0, 1))
-                .stream()
-                .findFirst()
-                .orElseGet(() -> {
-                    ResearchSession s = ResearchSession.builder()
-                            .user(user)
-                            .title("Research Session")
-                            .build();
-                    return sessionRepository.save(s);
-                });
-    }
-
-    private ResearchQuery persistQuery(
-            ResearchSession session,
-            String question,
-            String answer,
-            Map<String, Object> aiResponse,
-            List<Map<String, Object>> verifiedCitations,
-            long latencyMs,
-            String strategy) {
-
-        String answerJson = toJson(aiResponse);
-        String citationsJson = toJson(verifiedCitations);
-
-        ResearchQuery query = ResearchQuery.builder()
-                .session(session)
-                .question(question)
-                .answerText(answer)
-                .answerJson(answerJson)
-                .citationsJson(citationsJson)
-                .latencyMs(latencyMs)
-                .retrievalStrategy(strategy)
-                .build();
-
-        session.getQueries().add(query);
-        sessionRepository.save(session);
-        return query;
-    }
-
     private ResearchSessionSummary toSessionSummary(ResearchSession s) {
         return new ResearchSessionSummary(
                 s.getId(),
@@ -283,15 +246,6 @@ public class ResearchServiceImpl implements ResearchService {
                 s.getId(), s.getTitle(), s.getDescription(),
                 queries, s.getCreatedAt(), s.getUpdatedAt()
         );
-    }
-
-    private String toJson(Object obj) {
-        try {
-            return objectMapper.writeValueAsString(obj);
-        } catch (JsonProcessingException ex) {
-            log.warn("Failed to serialize to JSON", ex);
-            return "{}";
-        }
     }
 
     // ── Phase 3 helpers ───────────────────────────────────────────────────────
@@ -354,10 +308,21 @@ public class ResearchServiceImpl implements ResearchService {
         return val instanceof Number n ? n.intValue() : 0;
     }
 
+    /**
+     * Extract a nested structured-result object (e.g. "structured_comparison",
+     * "structured_analysis", "structured_brief") from the AI service response.
+     *
+     * The AI service legitimately returns this key as JSON null on the
+     * INSUFFICIENT_EVIDENCE and GENERATION_ERROR paths (see routes.py) — that
+     * must map to null here, NOT to the raw aiResponse map. Falling back to
+     * the whole response would leak internal keys (confidence, citations,
+     * explanation, etc.) into a field the frontend expects to be either a
+     * clean structured object or absent.
+     */
     @SuppressWarnings("unchecked")
     private Map<String, Object> extractStructured(Map<String, Object> aiResponse, String key) {
         Object val = aiResponse.get(key);
-        return val instanceof Map<?, ?> m ? (Map<String, Object>) m : aiResponse;
+        return val instanceof Map<?, ?> m ? (Map<String, Object>) m : null;
     }
 
     @SuppressWarnings("unchecked")

@@ -91,6 +91,22 @@ class ResearchServicePhase3Test {
         );
     }
 
+    /**
+     * Mirrors what the AI service actually sends on its INSUFFICIENT_EVIDENCE /
+     * GENERATION_ERROR paths (see ai-service routes.py): the structured_* key
+     * is present but explicitly null, alongside other top-level keys like
+     * "error"/"explanation". Uses HashMap since Map.of() rejects null values.
+     */
+    private Map<String, Object> insufficientEvidenceAiResponse(String structuredKey) {
+        Map<String, Object> m = new java.util.HashMap<>();
+        m.put(structuredKey, null);
+        m.put("error", "INSUFFICIENT_EVIDENCE");
+        m.put("explanation", "No relevant evidence found in the specified documents.");
+        m.put("verified_citations", List.of());
+        m.put("invalid_citations", List.of());
+        return m;
+    }
+
     private Map<String, Object> aiResponseWithCitations() {
         return Map.of(
                 "verified_citations", List.of(
@@ -157,6 +173,27 @@ class ResearchServicePhase3Test {
             assertThat(resp.verifiedCitations()).hasSize(1);
             assertThat(resp.invalidCitations()).isEmpty();
             assertThat(resp.disclaimer()).isNotBlank();
+        }
+
+        @Test
+        @DisplayName("structuredComparison is null (not the raw AI response) when AI returns explicit null")
+        void structuredComparisonIsNullNotRawResponseOnInsufficientEvidence() {
+            CaseComparisonRequest request = new CaseComparisonRequest(
+                    "Compare these cases about bail",
+                    List.of(doc1Id, doc2Id),
+                    null, null, null
+            );
+
+            when(documentRepository.findAllByIdInAndOwnerId(any(), eq(userId)))
+                    .thenReturn(List.of(doc1, doc2));
+            when(aiServiceClient.compare(any()))
+                    .thenReturn(insufficientEvidenceAiResponse("structured_comparison"));
+
+            CaseComparisonResponse resp = service.compare(request, user);
+
+            // Regression: this used to fall back to dumping the entire raw AI
+            // response (including "error"/"explanation" keys) into this field.
+            assertThat(resp.structuredComparison()).isNull();
         }
 
         @Test
@@ -294,6 +331,23 @@ class ResearchServicePhase3Test {
         }
 
         @Test
+        @DisplayName("structuredAnalysis is null (not the raw AI response) when AI returns explicit null")
+        void structuredAnalysisIsNullNotRawResponseOnInsufficientEvidence() {
+            ProvisionAnalysisRequest request = new ProvisionAnalysisRequest(
+                    "Section 302 IPC",
+                    null, null, null, null
+            );
+
+            when(documentRepository.findAllByOwnerId(userId)).thenReturn(List.of(doc1));
+            when(aiServiceClient.analyseProvision(any()))
+                    .thenReturn(insufficientEvidenceAiResponse("structured_analysis"));
+
+            ProvisionAnalysisResponse resp = service.analyseProvision(request, user);
+
+            assertThat(resp.structuredAnalysis()).isNull();
+        }
+
+        @Test
         @DisplayName("response has correct provision text and disclaimer")
         void responseHasCorrectFields() {
             ProvisionAnalysisRequest request = new ProvisionAnalysisRequest(
@@ -353,6 +407,23 @@ class ResearchServicePhase3Test {
 
             verify(documentRepository).findAllByOwnerId(userId);
             verify(documentRepository, never()).findAllByIdInAndOwnerId(any(), any());
+        }
+
+        @Test
+        @DisplayName("structuredBrief is null (not the raw AI response) when AI returns explicit null")
+        void structuredBriefIsNullNotRawResponseOnInsufficientEvidence() {
+            ResearchBriefRequest request = new ResearchBriefRequest(
+                    "When may bail be denied for economic offences?",
+                    null, null, null, null, null, null
+            );
+
+            when(documentRepository.findAllByOwnerId(userId)).thenReturn(List.of(doc1));
+            when(aiServiceClient.generateBrief(any()))
+                    .thenReturn(insufficientEvidenceAiResponse("structured_brief"));
+
+            ResearchBriefResponse resp = service.generateBrief(request, user);
+
+            assertThat(resp.structuredBrief()).isNull();
         }
 
         @Test

@@ -422,6 +422,47 @@ class TestPrecedentsEndpoint:
         assert result["precedents"][0]["case_name"] == "State v. Accused"
         assert result["retrieved_chunks"] == 1
 
+    @pytest.mark.asyncio
+    async def test_malformed_llm_answer_does_not_crash_endpoint(self):
+        """
+        Regression test.
+
+        When the LLM's `answer` is not valid JSON (e.g. it ignored the
+        "return JSON only" system prompt), the precedents-extraction fallback
+        previously referenced an undefined name `_json` in its except clause
+        (`except (_json.JSONDecodeError, Exception)`), which raised a
+        NameError from *inside* the except handler itself as soon as
+        json.loads() failed — turning a harmless "couldn't parse, use empty
+        list" fallback into an unhandled 500. This asserts the endpoint
+        instead degrades gracefully to an empty precedents list.
+        """
+        from app.api.routes import find_precedents
+
+        mock_db = AsyncMock()
+        chunk = _make_chunk("DOC_ABCD1234_P1_PAR1")
+        verified = _make_verified("DOC_ABCD1234_P1_PAR1", is_valid=True)
+
+        # Not valid JSON — simulates the LLM ignoring the JSON-only instruction.
+        llm_resp = _make_llm_response(
+            answer="Sure, here are some precedents: State v. Accused, 2020.",
+            raw_text="Sure, here are some precedents: State v. Accused, 2020.",
+        )
+
+        mock_request = PrecedentRequest(query="bail principles")
+
+        with patch("app.api.routes.hybrid_search", new_callable=AsyncMock) as mock_hs,              patch("app.api.routes.expand_query") as mock_eq,              patch("app.api.routes.rerank") as mock_rr,              patch("app.api.routes._llm") as mock_llm,              patch("app.api.routes.verify_citations", new_callable=AsyncMock) as mock_vc:
+            mock_eq.return_value = ["bail principles"]
+            mock_hs.return_value = [chunk]
+            mock_rr.return_value = [chunk]
+            mock_llm.generate_with_system.return_value = llm_resp
+            mock_vc.return_value = [verified]
+
+            # Must not raise — previously raised NameError: name '_json' is not defined
+            result = await find_precedents(mock_request, mock_db)
+
+        assert result["precedents"] == []
+        assert result["retrieved_chunks"] == 1
+
 
 class TestProvisionEndpoint:
     @pytest.mark.asyncio

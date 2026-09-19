@@ -467,7 +467,7 @@ async def find_precedents(
         parsed = json.loads(llm_response.answer) if llm_response.answer not in ("GENERATION_ERROR", "") else {}
         if isinstance(parsed, dict):
             precedents_list = parsed.get("precedents", [])
-    except (_json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, Exception):
         pass
 
     return {
