@@ -1,0 +1,17 @@
+# Keeps local secrets and dev artifacts out of the Docker build context.
+# Without this file, the builder stage's `COPY . .` would pull in
+# node_modules/.next from the host (wasting build time/cache) and any local
+# .env.local with real secrets straight into the build context.
+.env
+.env.local
+.env.*.local
+
+node_modules/
+.next/
+out/
+
+.git/
+.gitignore
+
+*.tsbuildinfo
+.DS_Store

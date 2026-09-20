@@ -17,10 +17,14 @@ RUN npm run build
 FROM node:20-alpine AS runtime
 LABEL description="LexRAG — Next.js Frontend"
 
+# curl is required by the docker-compose healthcheck for this service
+# (CMD-SHELL "curl -sf http://localhost:3000") -- the node:*-alpine base
+# image does not include it by default.
+RUN apk add --no-cache curl
+
 RUN addgroup -S lexrag && adduser -S lexrag -G lexrag
 WORKDIR /app
 
-COPY --from=builder /app/public ./public
 COPY --from=builder --chown=lexrag:lexrag /app/.next/standalone ./
 COPY --from=builder --chown=lexrag:lexrag /app/.next/static ./.next/static
 

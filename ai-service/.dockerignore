@@ -1,0 +1,28 @@
+# Keeps local secrets and dev artifacts out of the Docker build context.
+# ai-service/app/core/settings.py reads a local ".env" file for non-Docker
+# development (pydantic-settings env_file=".env"); without this file, the
+# runtime stage's `COPY . .` would bake that .env (and any real secrets in
+# it) straight into the built image.
+.env
+.env.local
+.env.*.local
+
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.pytest_cache/
+*.egg-info/
+.mypy_cache/
+
+.git/
+.gitignore
+
+.model_cache/
+*.bin
+*.pt
+*.onnx
+
+uploads/

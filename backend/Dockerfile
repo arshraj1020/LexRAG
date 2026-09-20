@@ -14,6 +14,11 @@ FROM eclipse-temurin:21-jre-alpine AS runtime
 LABEL maintainer="LexRAG"
 LABEL description="LexRAG — AI Legal Research Backend"
 
+# curl is required by the docker-compose healthcheck for this service
+# (CMD-SHELL "curl -sf http://localhost:8080/actuator/health") -- the
+# eclipse-temurin *-jre-alpine base image does not include it by default.
+RUN apk add --no-cache curl
+
 RUN addgroup -S lexrag && adduser -S lexrag -G lexrag
 
 WORKDIR /app

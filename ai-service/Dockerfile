@@ -36,7 +36,7 @@ RUN mkdir -p /app/uploads && chown -R lexrag:lexrag /app
 USER lexrag
 
 ENV PATH=/home/lexrag/.local/bin:$PATH
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/home/lexrag/.local/lib/python3.11/site-packages
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
